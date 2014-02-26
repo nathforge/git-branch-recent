@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Show a menu of your recently used Git branches, allowing for a quick branch
+# switch.
+#
+# Usage: gbrr [COUNT]
+#   COUNT is the number of recently used branches to show. Defaults to 10.
+#
+# Example:
+#   $ gbrr
+#   0) f_test-1
+#   1) f_test-whatever
+#   2) master
+#   Switch to which branch? 1
+#
+#   + git checkout f_test-whatever
+#   Switched to branch 'f_test-whatever'
+#   Your branch is up-to-date with 'origin/f_test-whatever'.
+
+DEFAULT_COUNT=10
+
+COUNT=${1-$DEFAULT_COUNT}
+
+IFS=$'\r\n' BRANCHES=($(
+    git reflog | \
+    sed -n 's/.*checkout: moving from .* to \(.*\)/\1/p' | \
+    perl -ne 'print unless $a{$_}++' | \
+    head -n $COUNT
+))
+
+for ((i = 0; i < ${#BRANCHES[@]}; i++)); do
+    echo "$i) ${BRANCHES[$i]}"
+done
+
+read -p "Switch to which branch? "
+if [[ $REPLY != "" ]] && [[ ${BRANCHES[$REPLY]} != "" ]]; then
+    echo
+    set -x
+    git checkout ${BRANCHES[$REPLY]}
+else
+    echo Aborted.
+fi
